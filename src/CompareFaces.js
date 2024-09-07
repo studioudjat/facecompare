@@ -37,7 +37,7 @@ const CompareFaces = () => {
       const s3 = new AWS.S3();
       const params = {
         Bucket: process.env.REACT_APP_S3_BUCKET_NAME, // S3バケット名
-        Key: file.name, // ファイル名をキーとして使用
+        Key: `images/${file.name}`, // ファイル名をキーとして使用
         Body: file,
         ContentType: file.type,
       };

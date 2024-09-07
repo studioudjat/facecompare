@@ -40,7 +40,7 @@ const AddImage = () => {
     const s3 = new AWS.S3();
     const params = {
       Bucket: process.env.REACT_APP_S3_BUCKET_NAME, // S3バケットの名前を.envファイルから取得
-      Key: file.name,
+      Key: `images/${file.name}`,
       Body: file,
       ContentType: file.type,
     };

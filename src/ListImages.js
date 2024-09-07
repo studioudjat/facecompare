@@ -36,6 +36,7 @@ const ListImages = () => {
     const s3 = new AWS.S3();
     const params = {
       Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
+      Prefix: "images/",
     };
 
     s3.listObjectsV2(params, (err, data) => {

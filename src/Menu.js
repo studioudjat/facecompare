@@ -1,5 +1,12 @@
 import React from "react";
-import { AppBar, Toolbar, Typography, Button, Container } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Container,
+  Box,
+} from "@mui/material";
 import { Link } from "react-router-dom";
 
 const Menu = () => {
@@ -9,15 +16,23 @@ const Menu = () => {
       style={{ backgroundColor: "#1976d2", width: "100%", top: 0 }}
     >
       <Container maxWidth="md">
-        {" "}
-        {/* Container を追加して幅を制限 */}
         <Toolbar style={{ justifyContent: "space-between", padding: 0 }}>
-          <Typography
-            variant="h6"
-            style={{ fontFamily: "'Roboto', sans-serif" }}
-          >
-            FaceCompare
-          </Typography>
+          <Box display="flex" alignItems="center">
+            {/* ロゴ画像をpublicフォルダから参照 */}
+            <img
+              // src={`${process.env.PUBLIC_URL}/images/logo.png`}
+              src="/images/logo.png"
+              alt="FaceCompare Logo"
+              style={{ width: "40px", height: "40px", marginRight: "10px" }}
+            />
+            {/* タイトル */}
+            <Typography
+              variant="h6"
+              style={{ fontFamily: "'Roboto', sans-serif" }}
+            >
+              FaceCompare
+            </Typography>
+          </Box>
           <div>
             <Button
               color="inherit"
