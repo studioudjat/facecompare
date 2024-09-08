@@ -21,6 +21,9 @@ const ExtractIdInfo = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const [showPostButton, setShowPostButton] = useState(false);
+  const [curlCommand, setCurlCommand] = useState("");
+  const [postResult, setPostResult] = useState(null);
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -36,6 +39,8 @@ const ExtractIdInfo = () => {
     setLoading(true);
     setError(null);
     setResult(null);
+    setShowPostButton(false);
+    setCurlCommand("");
 
     try {
       const openai = new OpenAI({
@@ -90,6 +95,11 @@ const ExtractIdInfo = () => {
               setResult(extractedInfo);
               setSnackbarMessage("情報が正常に抽出されました");
               setSnackbarSeverity("success");
+              setShowPostButton(true);
+              generateCurlCommand(
+                extractedInfo.read_dob,
+                extractedInfo.id_expire
+              );
             } else {
               throw new Error("必要な情報が見つかりません");
             }
@@ -116,11 +126,56 @@ const ExtractIdInfo = () => {
     }
   };
 
+  const generateCurlCommand = (dob, expireDate) => {
+    const command = `curl -X POST "https://example.com/mobact/activation/79911483/a21195bc0717298ca15b84a90db5e983" \\
+     -H "Content-Type: application/x-www-form-urlencoded" \\
+     -d "real_dob=${dob}&id_expire=${expireDate}&submit=Activation"`;
+    setCurlCommand(command);
+  };
+
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") {
       return;
     }
     setOpenSnackbar(false);
+  };
+
+  const handlePost = async () => {
+    if (!result || !result.read_dob || !result.id_expire) {
+      setError("有効な抽出結果がありません");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        "https://example.com/mobact/activation/79911483/a21195bc0717298ca15b84a90db5e983",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `real_dob=${result.read_dob}&id_expire=${result.id_expire}&submit=Activation`,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.text();
+      setPostResult(data);
+      setSnackbarMessage("POST成功しました");
+      setSnackbarSeverity("success");
+    } catch (error) {
+      console.error("POST error:", error);
+      setError(`POSTリクエスト中にエラーが発生しました: ${error.message}`);
+      setSnackbarMessage("POSTに失敗しました");
+      setSnackbarSeverity("error");
+    } finally {
+      setLoading(false);
+      setOpenSnackbar(true);
+    }
   };
 
   return (
@@ -196,6 +251,46 @@ const ExtractIdInfo = () => {
             <Typography align="center">
               ID Expiration: {result.id_expire || "N/A"}
             </Typography>
+          </Box>
+        )}
+
+        {showPostButton && (
+          <Box display="flex" justifyContent="center" marginTop="20px">
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handlePost}
+              disabled={loading}
+            >
+              {loading ? "Posting..." : "POST"}
+            </Button>
+          </Box>
+        )}
+
+        {curlCommand && (
+          <Box marginTop="20px">
+            <Typography variant="h6" align="center">
+              cURL Command:
+            </Typography>
+            <pre
+              style={{
+                backgroundColor: "#f0f0f0",
+                padding: "10px",
+                borderRadius: "5px",
+                overflowX: "auto",
+              }}
+            >
+              <code>{curlCommand}</code>
+            </pre>
+          </Box>
+        )}
+
+        {postResult && (
+          <Box marginTop="20px">
+            <Typography variant="h6" align="center" style={{ color: "green" }}>
+              POST Result:
+            </Typography>
+            <Typography align="center">{postResult}</Typography>
           </Box>
         )}
 
