@@ -6,6 +6,8 @@ import AddImage from "./AddImage";
 import MatchFaces from "./MatchFaces";
 import ListImages from "./ListImages";
 import CompareFaces from "./CompareFaces";
+import ExtractIdInfo from "./ExtractIdInfo";
+
 import "./styles.css"; // 外部CSSファイルのインポート
 
 const root = ReactDOM.createRoot(document.getElementById("root")); // React 18 の新しい root API を使用
@@ -22,6 +24,8 @@ root.render(
       <Route path="/match" element={<MatchFaces />} />{" "}
       {/* "/match" パスに対するコンポーネント */}
       <Route path="/compare" element={<CompareFaces />} />{" "}
+      {/* "/compare" パスに対するコンポーネント */}
+      <Route path="/extract" element={<ExtractIdInfo />} />{" "}
       {/* "/compare" パスに対するコンポーネント */}
     </Routes>
   </Router>

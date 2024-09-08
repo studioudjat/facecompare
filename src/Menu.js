@@ -78,6 +78,17 @@ const Menu = () => {
             >
               Compare
             </Button>
+            <Button
+              color="inherit"
+              component={Link}
+              to="/extract"
+              style={{
+                textTransform: "none",
+                fontFamily: "'Roboto', sans-serif",
+              }}
+            >
+              Extract
+            </Button>
           </div>
         </Toolbar>
       </Container>
