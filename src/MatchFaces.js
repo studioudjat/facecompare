@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import {
   Container,
   Typography,
@@ -7,29 +8,65 @@ import {
   Card,
   CardMedia,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
 import AWS from "aws-sdk";
 import Menu from "./Menu";
 import { listImagesFromS3, renameProfileImage } from "./s3Service";
+import ImageGallery from "./ImageGallery";
+
+const ResultDialog = ({ open, onClose, result, similarity }) => {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Face Comparison Result</DialogTitle>
+      <DialogContent>
+        <Typography variant="body1">{result}</Typography>
+        {similarity !== null && similarity !== undefined && (
+          <Typography
+            variant="body1"
+            style={{ marginTop: "10px", color: "orange" }}
+          >
+            Highest similarity: {similarity.toFixed(2)}%
+          </Typography>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="primary">
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+ResultDialog.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  result: PropTypes.string,
+  similarity: PropTypes.number,
+};
 
 const MatchFaces = () => {
   const [images, setImages] = useState([]);
   const [targetKey, setTargetKey] = useState("");
   const [sourceImageUrl, setSourceImageUrl] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const [openResultDialog, setOpenResultDialog] = useState(false);
+  const [dialogResult, setDialogResult] = useState(null);
 
   useEffect(() => {
     fetchImages();
-    fetchProfileImage(); // プロフィール画像を取得
+    fetchProfileImage();
   }, []);
 
-  // プロフィール画像の取得
   const fetchProfileImage = async () => {
     try {
       const s3 = new AWS.S3();
@@ -44,7 +81,6 @@ const MatchFaces = () => {
     }
   };
 
-  // images リストを取得し、profile.jpg を除外
   const fetchImages = async () => {
     try {
       const imageList = await listImagesFromS3();
@@ -61,7 +97,12 @@ const MatchFaces = () => {
     setTargetKey(key);
   };
 
-  // 顔比較の処理
+  const showSnackbar = (message, severity) => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
   const handleCompare = async () => {
     if (!targetKey) {
       setError("ターゲット画像が選択されていません");
@@ -91,53 +132,39 @@ const MatchFaces = () => {
       const response = await rekognition.compareFaces(params).promise();
       if (response.FaceMatches && response.FaceMatches.length > 0) {
         const matches = response.FaceMatches.map((match) => {
-          return `Face is ${match.Similarity}% similar`;
+          return `Face is ${match.Similarity.toFixed(2)}% similar`;
         });
-        setResult(matches.join(", "));
+        const result = matches.join(", ");
+        const similarity = response.FaceMatches[0].Similarity;
+        setDialogResult({ result, similarity });
+        setOpenResultDialog(true);
       } else {
-        setResult("No faces matched.");
+        setDialogResult({ result: "No faces matched.", similarity: null });
+        setOpenResultDialog(true);
       }
     } catch (error) {
+      console.error("Error comparing faces:", error);
       setError("Error comparing faces: " + error.message);
+      showSnackbar("Error comparing faces: " + error.message, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Set as Source の処理
   const setAsSourceImage = async () => {
     setLoading(true);
     const timestamp = new Date().getTime();
 
     try {
-      console.log("Step A: Calling renameProfileImage...");
-
-      // プロフィール画像のリネームと新しい画像の設定
       await renameProfileImage(targetKey, timestamp);
-      console.log("Step B: Profile image set successfully.");
-
-      // プロフィール画像のURLを更新（タイムスタンプ付き）
       const newProfileImageUrl = `https://${process.env.REACT_APP_S3_BUCKET_NAME}.s3.${process.env.REACT_APP_AWS_REGION}.amazonaws.com/images/profile.jpg?t=${timestamp}`;
-
-      // 短い遅延を追加して S3 の変更が反映される時間を確保
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       setSourceImageUrl(newProfileImageUrl);
-      console.log("Step C: Profile image URL updated successfully.");
-
-      // 画像リストを再取得して更新
       await fetchImages();
-
-      // 成功メッセージを表示
-      setSnackbarMessage("Profile image updated successfully");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      showSnackbar("Profile image updated successfully", "success");
     } catch (err) {
       console.error("Error setting image as source:", err.message);
-      // エラーメッセージを表示
-      setSnackbarMessage("Error updating profile image: " + err.message);
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      showSnackbar("Error updating profile image: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -171,7 +198,6 @@ const MatchFaces = () => {
           Compare Faces
         </Typography>
 
-        {/* プロフィール画像を表示 */}
         <Box display="flex" justifyContent="center" marginBottom="30px">
           <Card>
             <CardMedia
@@ -183,40 +209,15 @@ const MatchFaces = () => {
           </Card>
         </Box>
 
-        {/* ターゲット画像の選択 */}
         <Typography variant="h6" align="center" gutterBottom>
           Select Target Image
         </Typography>
-        <Box display="flex" flexWrap="wrap" gap={2}>
-          {images.map((image) => (
-            <Card
-              key={image.key}
-              onClick={() => handleImageClick(image.key)}
-              style={{
-                border:
-                  targetKey === image.key
-                    ? "3px solid #1976d2"
-                    : "3px solid transparent",
-                cursor: "pointer",
-                width: "120px",
-                height: "120px",
-              }}
-            >
-              <CardMedia
-                component="img"
-                image={image.url}
-                alt="Target Image"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            </Card>
-          ))}
-        </Box>
+        <ImageGallery
+          images={images}
+          onSelect={handleImageClick}
+          selectedKey={targetKey}
+        />
 
-        {/* Match Faces ボタン */}
         <Box display="flex" justifyContent="center" marginTop="10px">
           <Button
             variant="contained"
@@ -228,7 +229,6 @@ const MatchFaces = () => {
           </Button>
         </Box>
 
-        {/* Set as Source ボタン */}
         <Box display="flex" justifyContent="center" marginTop="10px">
           <Button
             variant="contained"
@@ -240,17 +240,6 @@ const MatchFaces = () => {
           </Button>
         </Box>
 
-        {/* 結果表示 */}
-        {result && (
-          <Typography
-            variant="h6"
-            align="center"
-            style={{ marginTop: "20px", color: "green" }}
-          >
-            {result}
-          </Typography>
-        )}
-
         {error && (
           <Typography
             variant="h6"
@@ -260,6 +249,14 @@ const MatchFaces = () => {
             {error}
           </Typography>
         )}
+
+        <ResultDialog
+          open={openResultDialog}
+          onClose={() => setOpenResultDialog(false)}
+          result={dialogResult?.result || ""}
+          similarity={dialogResult?.similarity || null}
+        />
+
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}
