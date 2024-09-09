@@ -8,27 +8,44 @@ import {
   Typography,
   Card,
   CardContent,
-  Box, // Boxをインポート
+  CardMedia,
+  Box,
+  Snackbar,
+  Backdrop,
 } from "@mui/material";
-import Menu from "./Menu"; // メニューをインポート
+import MuiAlert from "@mui/material/Alert";
+import Menu from "./Menu";
 
 const AddImage = () => {
   const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
   const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
+    const selectedFile = event.target.files[0];
+    setFile(selectedFile);
+
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    } else {
+      setPreview(null);
+    }
   };
 
   const handleUpload = () => {
     if (!file) {
-      setMessage("Please select a file to upload.");
+      showSnackbar("Please select a file to upload.", "error");
       return;
     }
 
-    setUploading(true);
-    setMessage("");
+    setLoading(true);
 
     // AWS S3にアクセスするための認証情報を設定
     AWS.config.update({
@@ -39,28 +56,42 @@ const AddImage = () => {
 
     const s3 = new AWS.S3();
     const params = {
-      Bucket: process.env.REACT_APP_S3_BUCKET_NAME, // S3バケットの名前を.envファイルから取得
+      Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
       Key: `images/${file.name}`,
       Body: file,
       ContentType: file.type,
     };
 
     s3.upload(params, (err, data) => {
-      setUploading(false);
+      setLoading(false);
       if (err) {
-        setMessage(`Upload failed: ${err.message}`);
+        showSnackbar(`Upload failed: ${err.message}`, "error");
       } else {
-        setMessage(`Upload successful! File URL: ${data.Location}`);
+        showSnackbar("Upload successful!", "success");
+        // アップロード成功後、ファイル選択とプレビューをリセット
+        setFile(null);
+        setPreview(null);
       }
     });
   };
 
+  const showSnackbar = (message, severity) => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setOpenSnackbar(false);
+  };
+
   return (
     <div>
-      <Menu /> {/* メニューを表示 */}
+      <Menu />
       <Container maxWidth="md" style={{ marginTop: "100px" }}>
-        {" "}
-        {/* メニューバーに対する余白を追加 */}
         <Typography
           variant="h4"
           align="center"
@@ -77,7 +108,6 @@ const AddImage = () => {
         >
           Upload Image
         </Typography>
-        {/* Boxを使用してレイアウトを調整 */}
         <Box
           display="flex"
           justifyContent="center"
@@ -92,31 +122,59 @@ const AddImage = () => {
                 variant="outlined"
                 fullWidth
                 margin="normal"
+                disabled={loading}
+                InputLabelProps={{ shrink: true }}
               />
+              {preview && (
+                <Box display="flex" justifyContent="center" marginBottom="20px">
+                  <Card style={{ maxWidth: "300px" }}>
+                    <CardMedia
+                      component="img"
+                      image={preview}
+                      alt="Preview"
+                      style={{ maxHeight: "200px", objectFit: "contain" }}
+                    />
+                  </Card>
+                </Box>
+              )}
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleUpload}
-                disabled={uploading}
+                disabled={loading || !file}
                 fullWidth
                 style={{ textTransform: "none" }}
+                startIcon={
+                  loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : null
+                }
               >
-                {uploading ? <CircularProgress size={24} /> : "Upload"}
+                {loading ? "Uploading..." : "Upload"}
               </Button>
-              {message && (
-                <Typography
-                  variant="body2"
-                  color="textSecondary"
-                  align="center"
-                  style={{ marginTop: "10px" }}
-                >
-                  {message}
-                </Typography>
-              )}
             </CardContent>
           </Card>
         </Box>
       </Container>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+      >
+        <MuiAlert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </MuiAlert>
+      </Snackbar>
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={loading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </div>
   );
 };

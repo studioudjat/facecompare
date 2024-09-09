@@ -9,20 +9,34 @@ import {
   Box,
   TextField,
   CircularProgress,
+  Snackbar,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Backdrop,
 } from "@mui/material";
+import MuiAlert from "@mui/material/Alert";
+import CloseIcon from "@mui/icons-material/Close";
 import Menu from "./Menu";
 
 const CompareFaces = () => {
-  const [sourceFile, setSourceFile] = useState(null); // ソース画像のファイル
-  const [targetFile, setTargetFile] = useState(null); // ターゲット画像のファイル
-  const [sourceImageUrl, setSourceImageUrl] = useState(null); // アップロード後のソース画像URL
-  const [targetImageUrl, setTargetImageUrl] = useState(null); // アップロード後のターゲット画像URL
-  const [sourceKey, setSourceKey] = useState(null); // S3のソース画像のキー
-  const [targetKey, setTargetKey] = useState(null); // S3のターゲット画像のキー
-  const [result, setResult] = useState(null); // 比較結果
-  const [similarity, setSimilarity] = useState(null); // 類似度スコア
-  const [error, setError] = useState(null); // エラーメッセージ
-  const [uploading, setUploading] = useState(false); // アップロード中フラグ
+  const [sourceFile, setSourceFile] = useState(null);
+  const [targetFile, setTargetFile] = useState(null);
+  const [sourceImageUrl, setSourceImageUrl] = useState(null);
+  const [targetImageUrl, setTargetImageUrl] = useState(null);
+  const [sourceKey, setSourceKey] = useState(null);
+  const [targetKey, setTargetKey] = useState(null);
+  const [result, setResult] = useState(null);
+  const [similarity, setSimilarity] = useState(null);
+  const [error, setError] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
 
   // AWS SDKの設定
   AWS.config.update({
@@ -30,6 +44,28 @@ const CompareFaces = () => {
     secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
     region: process.env.REACT_APP_AWS_REGION,
   });
+
+  const showSnackbar = (message, severity) => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setOpenSnackbar(false);
+  };
+
+  const handlePreviewOpen = (imageUrl) => {
+    setPreviewImage(imageUrl);
+    setPreviewOpen(true);
+  };
+
+  const handlePreviewClose = () => {
+    setPreviewOpen(false);
+  };
 
   // 画像をS3にアップロードする処理
   const uploadToS3 = (file) => {
@@ -71,10 +107,12 @@ const CompareFaces = () => {
       setSourceImageUrl(sourceImageData.url);
       setTargetImageUrl(targetImageData.url);
 
-      setError(null); // エラーをクリア
+      setError(null);
+      showSnackbar("Images uploaded successfully", "success");
     } catch (err) {
       console.error("Error uploading images:", err);
       setError("Error uploading images");
+      showSnackbar("Error uploading images", "error");
     } finally {
       setUploading(false);
     }
@@ -82,6 +120,7 @@ const CompareFaces = () => {
 
   // Rekognitionで顔を比較する処理
   const handleCompare = async () => {
+    setComparing(true);
     const rekognition = new AWS.Rekognition();
     const params = {
       SourceImage: {
@@ -96,7 +135,7 @@ const CompareFaces = () => {
           Name: targetKey,
         },
       },
-      SimilarityThreshold: 0, // 類似度の閾値を設定
+      SimilarityThreshold: 0,
     };
 
     try {
@@ -104,23 +143,27 @@ const CompareFaces = () => {
 
       if (response.FaceMatches && response.FaceMatches.length > 0) {
         const matches = response.FaceMatches.map((match) => {
-          return `Face is ${match.Similarity}% similar`;
+          return `Face is ${match.Similarity.toFixed(2)}% similar`;
         });
         setResult(matches.join(", "));
-        setSimilarity(null); // マッチした場合は類似度スコアをクリア
+        setSimilarity(response.FaceMatches[0].Similarity);
       } else {
         setResult("No faces matched.");
-        setSimilarity(0); // 類似度スコアを設定
+        setSimilarity(0);
       }
+      showSnackbar("Face comparison completed", "success");
     } catch (error) {
       console.error("Error comparing faces:", error);
       setError(`Error comparing faces: ${error.message}`);
+      showSnackbar(`Error comparing faces: ${error.message}`, "error");
+    } finally {
+      setComparing(false);
     }
   };
 
   return (
     <div>
-      <Menu /> {/* メニューを表示 */}
+      <Menu />
       <Container maxWidth="md" style={{ marginTop: "100px" }}>
         <Typography
           variant="h4"
@@ -139,7 +182,6 @@ const CompareFaces = () => {
           Upload and Compare Faces
         </Typography>
 
-        {/* 画像アップロードフォーム */}
         <Box display="flex" justifyContent="space-around" marginBottom="30px">
           <TextField
             type="file"
@@ -155,7 +197,6 @@ const CompareFaces = () => {
           />
         </Box>
 
-        {/* アップロードボタン */}
         <Box display="flex" justifyContent="center" marginBottom="30px">
           <Button
             variant="contained"
@@ -163,15 +204,20 @@ const CompareFaces = () => {
             onClick={handleUpload}
             disabled={!sourceFile || !targetFile || uploading}
             style={{ textTransform: "none" }}
+            startIcon={
+              uploading ? <CircularProgress size={20} color="inherit" /> : null
+            }
           >
-            {uploading ? <CircularProgress size={24} /> : "Upload Images"}
+            {uploading ? "Uploading..." : "Upload Images"}
           </Button>
         </Box>
 
-        {/* アップロードした画像のプレビュー */}
         {sourceImageUrl && targetImageUrl && (
           <Box display="flex" justifyContent="space-around" marginBottom="30px">
-            <Card>
+            <Card
+              onClick={() => handlePreviewOpen(sourceImageUrl)}
+              style={{ cursor: "pointer" }}
+            >
               <CardMedia
                 component="img"
                 height="200"
@@ -179,7 +225,10 @@ const CompareFaces = () => {
                 alt="Source Image"
               />
             </Card>
-            <Card>
+            <Card
+              onClick={() => handlePreviewOpen(targetImageUrl)}
+              style={{ cursor: "pointer" }}
+            >
               <CardMedia
                 component="img"
                 height="200"
@@ -190,25 +239,24 @@ const CompareFaces = () => {
           </Box>
         )}
 
-        {/* マッチングボタン */}
         <Box display="flex" justifyContent="center" marginBottom="30px">
           <Button
             variant="contained"
             color="primary"
             onClick={handleCompare}
-            disabled={!sourceKey || !targetKey || uploading}
+            disabled={!sourceKey || !targetKey || comparing}
             style={{ textTransform: "none" }}
+            startIcon={
+              comparing ? <CircularProgress size={20} color="inherit" /> : null
+            }
           >
-            Compare Faces
+            {comparing ? "Comparing..." : "Compare Faces"}
           </Button>
         </Box>
 
-        {/* 結果表示 */}
         {result && (
           <Typography
-            variant="h6
-
-"
+            variant="h6"
             align="center"
             style={{ marginTop: "20px", color: "green" }}
           >
@@ -222,7 +270,7 @@ const CompareFaces = () => {
             align="center"
             style={{ marginTop: "20px", color: "orange" }}
           >
-            Highest similarity: {similarity}%
+            Highest similarity: {similarity.toFixed(2)}%
           </Typography>
         )}
 
@@ -236,6 +284,54 @@ const CompareFaces = () => {
           </Typography>
         )}
       </Container>
+
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+      >
+        <MuiAlert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </MuiAlert>
+      </Snackbar>
+
+      <Dialog
+        open={previewOpen}
+        onClose={handlePreviewClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Image Preview
+          <IconButton
+            aria-label="close"
+            onClick={handlePreviewClose}
+            style={{ position: "absolute", right: 8, top: 8, color: "#aaa" }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {previewImage && (
+            <img
+              src={previewImage}
+              alt="Preview"
+              style={{ width: "100%", height: "auto" }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={uploading || comparing}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </div>
   );
 };

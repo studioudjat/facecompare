@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import AWS from "aws-sdk";
 import {
   Container,
@@ -12,27 +12,30 @@ import {
   CardActions,
   Button,
   Box,
+  Snackbar,
+  CircularProgress,
 } from "@mui/material";
+import MuiAlert from "@mui/material/Alert";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
 import Menu from "./Menu";
 
 const ListImages = () => {
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
-  useEffect(() => {
-    AWS.config.update({
-      accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
-      region: process.env.REACT_APP_AWS_REGION,
-    });
+  const showSnackbar = (message, severity) => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
 
-    fetchImages();
-  }, []);
-
-  // 画像をS3から取得する関数
-  const fetchImages = () => {
+  const fetchImages = useCallback(() => {
     const s3 = new AWS.S3();
     const params = {
       Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
@@ -42,6 +45,7 @@ const ListImages = () => {
     s3.listObjectsV2(params, (err, data) => {
       if (err) {
         console.error("Error fetching images:", err);
+        showSnackbar("Error fetching images", "error");
       } else {
         const imagePromises = data.Contents.map((item) => {
           const signedUrl = s3.getSignedUrl("getObject", {
@@ -54,10 +58,20 @@ const ListImages = () => {
         Promise.all(imagePromises).then((results) => setImages(results));
       }
     });
-  };
+  }, []);
 
-  // 画像をS3から削除する関数
+  useEffect(() => {
+    AWS.config.update({
+      accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
+      region: process.env.REACT_APP_AWS_REGION,
+    });
+
+    fetchImages();
+  }, [fetchImages]);
+
   const handleDelete = (key) => {
+    setLoading(true);
     const s3 = new AWS.S3();
     const params = {
       Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
@@ -65,13 +79,23 @@ const ListImages = () => {
     };
 
     s3.deleteObject(params, (err, data) => {
+      setLoading(false);
       if (err) {
         console.error("Error deleting image:", err);
+        showSnackbar(`Error deleting image: ${err.message}`, "error");
       } else {
         console.log(`Deleted image: ${key}`);
+        showSnackbar("Image deleted successfully", "success");
         fetchImages(); // 削除後、画像リストを更新
       }
     });
+  };
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setOpenSnackbar(false);
   };
 
   return (
@@ -95,12 +119,11 @@ const ListImages = () => {
           Uploaded Images
         </Typography>
 
-        {/* Flexboxを使用してカードのレイアウトを調整 */}
         <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2}>
           {images.map((image, index) => (
             <Box
               key={index}
-              flex="1 1 calc(30% - 10px)" // カードを3列に配置し、幅を調整
+              flex="1 1 calc(30% - 10px)"
               maxWidth="calc(30% - 10px)"
               boxSizing="border-box"
             >
@@ -113,6 +136,11 @@ const ListImages = () => {
                   style={{
                     transition: "transform 0.5s ease",
                     objectFit: "cover",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    setSelectedImage(image.url);
+                    setOpen(true);
                   }}
                   onMouseOver={(e) =>
                     (e.currentTarget.style.transform = "scale(1.1)")
@@ -123,23 +151,23 @@ const ListImages = () => {
                 />
                 <CardActions style={{ justifyContent: "center" }}>
                   <Button
-                    size="small"
+                    variant="contained"
                     color="primary"
-                    onClick={() => {
-                      setSelectedImage(image.url);
-                      setOpen(true);
-                    }}
-                    style={{ textTransform: "none" }}
-                  >
-                    Preview
-                  </Button>
-                  <Button
-                    size="small"
-                    color="secondary"
                     onClick={() => handleDelete(image.key)}
-                    style={{ textTransform: "none" }}
+                    disabled={loading}
+                    startIcon={
+                      loading ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        <DeleteIcon />
+                      )
+                    }
+                    style={{
+                      textTransform: "none",
+                      minWidth: "100px",
+                    }}
                   >
-                    Delete
+                    {loading ? "Deleting..." : "Delete"}
                   </Button>
                 </CardActions>
               </Card>
@@ -174,6 +202,19 @@ const ListImages = () => {
           </DialogContent>
         </Dialog>
       </Container>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+      >
+        <MuiAlert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </MuiAlert>
+      </Snackbar>
     </div>
   );
 };
