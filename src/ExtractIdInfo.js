@@ -65,9 +65,10 @@ const ExtractIdInfo = () => {
                   
                   #命令文
                   1. この画像から生年月日と有効期限を抽出する
-                  2. 生年月日はread_dob、有効期限はid_expireという変数名を使う
-                  3. 形式はyyyy-mm-ddに変換する
-                  4. 出力形式はJSON形式`,
+                  2. 生年月日の明治、昭和、平成、令和は西暦に変換する
+                  3. 生年月日はread_dob、有効期限はid_expireという変数名を使う
+                  4. 形式はyyyy-mm-ddに変換する
+                  5. 出力形式はJSON形式`,
                 },
                 {
                   type: "image_url",
