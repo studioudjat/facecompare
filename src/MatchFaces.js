@@ -198,8 +198,13 @@ const MatchFaces = () => {
           Compare Faces
         </Typography>
 
-        <Box display="flex" justifyContent="center" marginBottom="30px">
-          <Card>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          marginBottom="30px"
+        >
+          <Card style={{ width: "50%" }}>
             <CardMedia
               component="img"
               height="300"
@@ -207,6 +212,30 @@ const MatchFaces = () => {
               alt="Source Image (Profile)"
             />
           </Card>
+          <Box
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            width="45%"
+          >
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleCompare}
+              disabled={!targetKey || loading}
+              style={{ marginBottom: "10px" }}
+            >
+              {loading ? "Comparing..." : "Match Faces"}
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={setAsSourceImage}
+              disabled={!targetKey || loading}
+            >
+              {loading ? "Processing..." : "Set as Source"}
+            </Button>
+          </Box>
         </Box>
 
         <Typography variant="h6" align="center" gutterBottom>
@@ -217,28 +246,6 @@ const MatchFaces = () => {
           onSelect={handleImageClick}
           selectedKey={targetKey}
         />
-
-        <Box display="flex" justifyContent="center" marginTop="10px">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCompare}
-            disabled={!targetKey || loading}
-          >
-            {loading ? "Comparing..." : "Match Faces"}
-          </Button>
-        </Box>
-
-        <Box display="flex" justifyContent="center" marginTop="10px">
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={setAsSourceImage}
-            disabled={!targetKey || loading}
-          >
-            {loading ? "Processing..." : "Set as Source"}
-          </Button>
-        </Box>
 
         {error && (
           <Typography
