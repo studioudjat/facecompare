@@ -22,8 +22,8 @@ FaceCompare は、AWS Rekognition と React を使用して開発された顔認
 1. リポジトリをクローンします：
 
    ```
-   git clone https://github.com/yourusername/facecompare-app.git
-   cd facecompare-app
+   git clone https://github.com/studioudjat/facecompare.git
+   cd facecompare
    ```
 
 2. 依存関係をインストールします：
