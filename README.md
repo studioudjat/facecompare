@@ -1,70 +1,70 @@
-# Getting Started with Create React App
+# FaceCompare アプリケーション
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+FaceCompare は、AWS Rekognition と React を使用して開発された顔認識アプリケーションです。このアプリケーションでは、画像のアップロード、顔の比較、ID からの情報抽出などの機能を提供します。
 
-## Available Scripts
+## 機能
 
-In the project directory, you can run:
+- 画像のアップロードと管理
+- 顔の比較（1 対 1 および 1 対多）
+- ID 情報の抽出（OpenAI API を使用）
+- 画像ギャラリーの表示
+- プロフィール画像の設定
 
-### `npm start`
+## 技術スタック
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- React
+- AWS SDK (S3, Rekognition)
+- Material-UI
+- OpenAI API
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## セットアップ
 
-### `npm test`
+1. リポジトリをクローンします：
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+   ```
+   git clone https://github.com/yourusername/facecompare-app.git
+   cd facecompare-app
+   ```
 
-### `npm run build`
+2. 依存関係をインストールします：
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+   ```
+   npm install
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. `.env.example` ファイルを `.env` にコピーし、必要な環境変数を設定します：
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+   ```
+   cp .env.example .env
+   ```
 
-### `npm run eject`
+   テキストエディタで `.env` を開き、以下の変数に適切な値を設定してください：
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+   - AWS_ACCESS_KEY_ID
+   - AWS_SECRET_ACCESS_KEY
+   - AWS_REGION
+   - S3_BUCKET_NAME
+   - OPENAI_API_KEY
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+4. アプリケーションを起動します：
+   ```
+   npm start
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 使用方法
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. **画像のアップロード**: 「Add」ページで画像をアップロードします。
+2. **画像の一覧表示**: 「List」ページでアップロードされた画像を確認します。
+3. **顔の比較**: 「Match」ページでプロフィール画像と他の画像を比較します。
+4. **1 対 1 の顔比較**: 「Compare」ページで 2 つの画像の顔を比較します。
+5. **ID 情報の抽出**: 「Extract」ページで ID 画像から情報を抽出します。
 
-## Learn More
+## 注意事項
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- このアプリケーションは、AWS のサービスと OpenAI API を使用しています。使用には適切な認証情報と料金が発生する可能性があります。
+- 個人情報や機密情報の取り扱いには十分注意してください。
+- 本番環境にデプロイする際は、適切なセキュリティ対策を講じてください。
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## ライセンス
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+このプロジェクトは [MIT ライセンス](LICENSE) のもとで公開されています。
