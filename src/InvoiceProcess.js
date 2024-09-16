@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import AWS from "aws-sdk";
 import {
   Container,
   Typography,
@@ -21,6 +20,13 @@ import {
 import MuiAlert from "@mui/material/Alert";
 import Menu from "./Menu";
 
+// AWS SDK v3のクライアントとコマンドをインポート
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  TextractClient,
+  AnalyzeDocumentCommand,
+} from "@aws-sdk/client-textract";
+
 const InvoiceProcess = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,13 +35,6 @@ const InvoiceProcess = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-
-  // AWS SDKの設定
-  AWS.config.update({
-    accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
-    region: process.env.REACT_APP_AWS_REGION,
-  });
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
@@ -65,18 +64,35 @@ const InvoiceProcess = () => {
     setResult(null);
 
     try {
-      // Upload file to S3
-      const s3 = new AWS.S3();
+      // S3クライアントの作成
+      const s3Client = new S3Client({
+        region: process.env.REACT_APP_AWS_REGION,
+        credentials: {
+          accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
+        },
+      });
+
+      // ファイルをS3にアップロード
       const uploadParams = {
         Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
         Key: `docs/${file.name}`,
         Body: file,
       };
 
-      await s3.upload(uploadParams).promise();
+      const putObjectCommand = new PutObjectCommand(uploadParams);
+      await s3Client.send(putObjectCommand);
 
-      // Analyze document with Textract
-      const textract = new AWS.Textract();
+      // Textractクライアントの作成
+      const textractClient = new TextractClient({
+        region: process.env.REACT_APP_AWS_REGION,
+        credentials: {
+          accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
+        },
+      });
+
+      // Textractでドキュメントを解析
       const analyzeParams = {
         Document: {
           S3Object: {
@@ -87,9 +103,8 @@ const InvoiceProcess = () => {
         FeatureTypes: ["FORMS", "TABLES"],
       };
 
-      const analyzeResult = await textract
-        .analyzeDocument(analyzeParams)
-        .promise();
+      const analyzeCommand = new AnalyzeDocumentCommand(analyzeParams);
+      const analyzeResult = await textractClient.send(analyzeCommand);
 
       // Debug: Log the entire Textract result
       console.log(JSON.stringify(analyzeResult, null, 2));
@@ -109,9 +124,10 @@ const InvoiceProcess = () => {
       const getBlockText = (block) => {
         if (block.Text) return block.Text;
         if (block.Relationships && block.Relationships[0].Type === "CHILD") {
-          return block.Relationships[0].Ids.map(
-            (id) => analyzeResult.Blocks.find((b) => b.Id === id).Text
-          ).join(" ");
+          return block.Relationships[0].Ids.map((id) => {
+            const childBlock = analyzeResult.Blocks.find((b) => b.Id === id);
+            return childBlock ? childBlock.Text : "";
+          }).join(" ");
         }
         return "";
       };
@@ -299,8 +315,8 @@ const InvoiceProcess = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell>Description</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Price</TableCell>
+                      <TableCell>From Date</TableCell>
+                      <TableCell>To Date</TableCell>
                       <TableCell>Amount</TableCell>
                     </TableRow>
                   </TableHead>
@@ -308,8 +324,8 @@ const InvoiceProcess = () => {
                     {result.items.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>{item.description}</TableCell>
-                        <TableCell>{item.date}</TableCell>
-                        <TableCell>{item.price}</TableCell>
+                        <TableCell>{item.fromDate}</TableCell>
+                        <TableCell>{item.toDate}</TableCell>
                         <TableCell>{item.amount}</TableCell>
                       </TableRow>
                     ))}
