@@ -7,17 +7,11 @@ import {
   Card,
   CardMedia,
   Box,
-  TextField,
   CircularProgress,
   Snackbar,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
   Backdrop,
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
-import CloseIcon from "@mui/icons-material/Close";
 import Menu from "./Menu";
 
 const CompareFaces = () => {
@@ -35,8 +29,6 @@ const CompareFaces = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
 
   // AWS SDKの設定
   AWS.config.update({
@@ -58,13 +50,15 @@ const CompareFaces = () => {
     setOpenSnackbar(false);
   };
 
-  const handlePreviewOpen = (imageUrl) => {
-    setPreviewImage(imageUrl);
-    setPreviewOpen(true);
-  };
-
-  const handlePreviewClose = () => {
-    setPreviewOpen(false);
+  const handleFileChange = (event, isSource) => {
+    const file = event.target.files[0];
+    if (isSource) {
+      setSourceFile(file);
+      setSourceImageUrl(URL.createObjectURL(file));
+    } else {
+      setTargetFile(file);
+      setTargetImageUrl(URL.createObjectURL(file));
+    }
   };
 
   // 画像をS3にアップロードする処理
@@ -72,8 +66,8 @@ const CompareFaces = () => {
     return new Promise((resolve, reject) => {
       const s3 = new AWS.S3();
       const params = {
-        Bucket: process.env.REACT_APP_S3_BUCKET_NAME, // S3バケット名
-        Key: `images/${file.name}`, // ファイル名をキーとして使用
+        Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
+        Key: `images/${file.name}`,
         Body: file,
         ContentType: file.type,
       };
@@ -97,6 +91,11 @@ const CompareFaces = () => {
 
   // アップロード処理を実行
   const handleUpload = async () => {
+    if (!sourceFile || !targetFile) {
+      showSnackbar("Please select both source and target images", "error");
+      return;
+    }
+
     setUploading(true);
     try {
       const sourceImageData = await uploadToS3(sourceFile);
@@ -183,18 +182,52 @@ const CompareFaces = () => {
         </Typography>
 
         <Box display="flex" justifyContent="space-around" marginBottom="30px">
-          <TextField
-            type="file"
-            onChange={(e) => setSourceFile(e.target.files[0])}
-            label="Upload Source Image"
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            type="file"
-            onChange={(e) => setTargetFile(e.target.files[0])}
-            label="Upload Target Image"
-            InputLabelProps={{ shrink: true }}
-          />
+          <Box>
+            <input
+              accept="image/*"
+              style={{ display: "none" }}
+              id="source-image-upload"
+              type="file"
+              onChange={(e) => handleFileChange(e, true)}
+            />
+            <label htmlFor="source-image-upload">
+              <Button variant="contained" component="span">
+                Select Source Image
+              </Button>
+            </label>
+            {sourceImageUrl && (
+              <Card style={{ marginTop: "10px", maxWidth: "200px" }}>
+                <CardMedia
+                  component="img"
+                  image={sourceImageUrl}
+                  alt="Source Image"
+                />
+              </Card>
+            )}
+          </Box>
+          <Box>
+            <input
+              accept="image/*"
+              style={{ display: "none" }}
+              id="target-image-upload"
+              type="file"
+              onChange={(e) => handleFileChange(e, false)}
+            />
+            <label htmlFor="target-image-upload">
+              <Button variant="contained" component="span">
+                Select Target Image
+              </Button>
+            </label>
+            {targetImageUrl && (
+              <Card style={{ marginTop: "10px", maxWidth: "200px" }}>
+                <CardMedia
+                  component="img"
+                  image={targetImageUrl}
+                  alt="Target Image"
+                />
+              </Card>
+            )}
+          </Box>
         </Box>
 
         <Box display="flex" justifyContent="center" marginBottom="30px">
@@ -211,33 +244,6 @@ const CompareFaces = () => {
             {uploading ? "Uploading..." : "Upload Images"}
           </Button>
         </Box>
-
-        {sourceImageUrl && targetImageUrl && (
-          <Box display="flex" justifyContent="space-around" marginBottom="30px">
-            <Card
-              onClick={() => handlePreviewOpen(sourceImageUrl)}
-              style={{ cursor: "pointer" }}
-            >
-              <CardMedia
-                component="img"
-                height="200"
-                image={sourceImageUrl}
-                alt="Source Image"
-              />
-            </Card>
-            <Card
-              onClick={() => handlePreviewOpen(targetImageUrl)}
-              style={{ cursor: "pointer" }}
-            >
-              <CardMedia
-                component="img"
-                height="200"
-                image={targetImageUrl}
-                alt="Target Image"
-              />
-            </Card>
-          </Box>
-        )}
 
         <Box display="flex" justifyContent="center" marginBottom="30px">
           <Button
@@ -298,33 +304,6 @@ const CompareFaces = () => {
           {snackbarMessage}
         </MuiAlert>
       </Snackbar>
-
-      <Dialog
-        open={previewOpen}
-        onClose={handlePreviewClose}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          Image Preview
-          <IconButton
-            aria-label="close"
-            onClick={handlePreviewClose}
-            style={{ position: "absolute", right: 8, top: 8, color: "#aaa" }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {previewImage && (
-            <img
-              src={previewImage}
-              alt="Preview"
-              style={{ width: "100%", height: "auto" }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}

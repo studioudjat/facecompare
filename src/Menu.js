@@ -89,6 +89,17 @@ const Menu = () => {
             >
               Extract
             </Button>
+            <Button
+              color="inherit"
+              component={Link}
+              to="/process"
+              style={{
+                textTransform: "none",
+                fontFamily: "'Roboto', sans-serif",
+              }}
+            >
+              Process
+            </Button>
           </div>
         </Toolbar>
       </Container>

@@ -9,6 +9,7 @@ import CompareFaces from "./CompareFaces";
 import ExtractIdInfo from "./ExtractIdInfo";
 
 import "./styles.css"; // 外部CSSファイルのインポート
+import InvoiceProcess from "./InvoiceProcess";
 
 const root = ReactDOM.createRoot(document.getElementById("root")); // React 18 の新しい root API を使用
 
@@ -26,7 +27,9 @@ root.render(
       <Route path="/compare" element={<CompareFaces />} />{" "}
       {/* "/compare" パスに対するコンポーネント */}
       <Route path="/extract" element={<ExtractIdInfo />} />{" "}
-      {/* "/compare" パスに対するコンポーネント */}
+      {/* "/extract" パスに対するコンポーネント */}
+      <Route path="/process" element={<InvoiceProcess />} />{" "}
+      {/* "/process" パスに対するコンポーネント */}
     </Routes>
   </Router>
 );

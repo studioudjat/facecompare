@@ -2,12 +2,10 @@ import React, { useState } from "react";
 import AWS from "aws-sdk";
 import {
   Button,
-  TextField,
   CircularProgress,
   Container,
   Typography,
   Card,
-  CardContent,
   CardMedia,
   Box,
   Snackbar,
@@ -108,54 +106,45 @@ const AddImage = () => {
         >
           Upload Image
         </Typography>
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          flexDirection="column"
-        >
-          <Card style={{ width: "100%", maxWidth: "500px" }}>
-            <CardContent>
-              <TextField
-                type="file"
-                onChange={handleFileChange}
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                disabled={loading}
-                InputLabelProps={{ shrink: true }}
-              />
-              {preview && (
-                <Box display="flex" justifyContent="center" marginBottom="20px">
-                  <Card style={{ maxWidth: "300px" }}>
-                    <CardMedia
-                      component="img"
-                      image={preview}
-                      alt="Preview"
-                      style={{ maxHeight: "200px", objectFit: "contain" }}
-                    />
-                  </Card>
-                </Box>
-              )}
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleUpload}
-                disabled={loading || !file}
-                fullWidth
-                style={{ textTransform: "none" }}
-                startIcon={
-                  loading ? (
-                    <CircularProgress size={20} color="inherit" />
-                  ) : null
-                }
-              >
-                {loading ? "Uploading..." : "Upload"}
-              </Button>
-            </CardContent>
-          </Card>
+
+        <Box display="flex" justifyContent="center" marginBottom="30px">
+          <input
+            accept="image/*"
+            style={{ display: "none" }}
+            id="raised-button-file"
+            type="file"
+            onChange={handleFileChange}
+          />
+          <label htmlFor="raised-button-file">
+            <Button variant="contained" component="span">
+              Select Image
+            </Button>
+          </label>
+        </Box>
+
+        {preview && (
+          <Box display="flex" justifyContent="center" marginBottom="30px">
+            <Card style={{ maxWidth: "300px" }}>
+              <CardMedia component="img" image={preview} alt="Preview" />
+            </Card>
+          </Box>
+        )}
+
+        <Box display="flex" justifyContent="center" marginTop="20px">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleUpload}
+            disabled={loading || !file}
+            startIcon={
+              loading ? <CircularProgress size={20} color="inherit" /> : null
+            }
+          >
+            {loading ? "Uploading..." : "Upload"}
+          </Button>
         </Box>
       </Container>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
@@ -169,6 +158,7 @@ const AddImage = () => {
           {snackbarMessage}
         </MuiAlert>
       </Snackbar>
+
       <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={loading}
