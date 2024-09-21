@@ -21,11 +21,14 @@ import MuiAlert from "@mui/material/Alert";
 import Menu from "./Menu";
 
 // AWS SDK v3のクライアントとコマンドをインポート
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import {
   TextractClient,
   AnalyzeDocumentCommand,
 } from "@aws-sdk/client-textract";
+
+// 各ベンダーごとのモジュールをインポート
+import { processCogentInvoice } from "./CogentInvoiceModule";
+import { processOpenAIInvoice } from "./OpenAIInvoiceModule";
 
 const InvoiceProcess = () => {
   const [file, setFile] = useState(null);
@@ -64,26 +67,8 @@ const InvoiceProcess = () => {
     setResult(null);
 
     try {
-      // S3クライアントの作成
-      const s3Client = new S3Client({
-        region: process.env.REACT_APP_AWS_REGION,
-        credentials: {
-          accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.REACT_APP_AWS_SECRET_ACCESS_KEY,
-        },
-      });
-
-      // ファイルをS3にアップロード
-      const uploadParams = {
-        Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
-        Key: `docs/${file.name}`,
-        Body: file,
-      };
-
-      const putObjectCommand = new PutObjectCommand(uploadParams);
-      await s3Client.send(putObjectCommand);
-
-      // Textractクライアントの作成
+      // ファイルをBase64に変換してTextractに渡す
+      const fileData = await file.arrayBuffer();
       const textractClient = new TextractClient({
         region: process.env.REACT_APP_AWS_REGION,
         credentials: {
@@ -92,13 +77,9 @@ const InvoiceProcess = () => {
         },
       });
 
-      // Textractでドキュメントを解析
       const analyzeParams = {
         Document: {
-          S3Object: {
-            Bucket: process.env.REACT_APP_S3_BUCKET_NAME,
-            Name: `docs/${file.name}`,
-          },
+          Bytes: new Uint8Array(fileData), // ローカルファイルのデータをTextractに渡す
         },
         FeatureTypes: ["FORMS", "TABLES"],
       };
@@ -106,126 +87,32 @@ const InvoiceProcess = () => {
       const analyzeCommand = new AnalyzeDocumentCommand(analyzeParams);
       const analyzeResult = await textractClient.send(analyzeCommand);
 
-      // Debug: Log the entire Textract result
-      console.log(JSON.stringify(analyzeResult, null, 2));
+      // Textractの解析結果をデバッグするためのログ
+      console.log(JSON.stringify(analyzeResult.Blocks, null, 2));
 
-      // Parse results
-      const extractedInfo = {
-        vendorName: "",
-        invoiceDate: "",
-        dueDate: "",
-        amountDue: "",
-        items: [],
-      };
+      // 検出したベンダー名の判定
+      const vendorName = detectVendor(analyzeResult.Blocks);
 
-      let invoiceDateFound = false;
-
-      // Helper function to get the text of a block
-      const getBlockText = (block) => {
-        if (block.Text) return block.Text;
-        if (block.Relationships && block.Relationships[0].Type === "CHILD") {
-          return block.Relationships[0].Ids.map((id) => {
-            const childBlock = analyzeResult.Blocks.find((b) => b.Id === id);
-            return childBlock ? childBlock.Text : "";
-          }).join(" ");
-        }
-        return "";
-      };
-
-      // Function to extract amount due
-      const extractAmountDue = (blocks) => {
-        for (let i = 0; i < blocks.length; i++) {
-          const text = getBlockText(blocks[i]).toLowerCase();
-          if (text.includes("amount due")) {
-            // Search for the amount in the next few blocks
-            for (let j = i + 1; j < Math.min(i + 5, blocks.length); j++) {
-              const amountMatch = getBlockText(blocks[j]).match(
-                /\$[\d,]+\.\d{2}/
-              );
-              if (amountMatch) {
-                return amountMatch[0];
-              }
-            }
-          }
-        }
-        return "";
-      };
-
-      extractedInfo.amountDue = extractAmountDue(analyzeResult.Blocks);
-
-      analyzeResult.Blocks.forEach((block) => {
-        const text = getBlockText(block).toLowerCase();
-
-        if (block.BlockType === "LINE" || block.BlockType === "WORD") {
-          // Extract vendor name
-          if (text.includes("cogent communications")) {
-            extractedInfo.vendorName = "Cogent Communications, LLC";
-          }
-
-          // Extract invoice date
-          if (!invoiceDateFound && text.includes("invoice date")) {
-            const dateMatch = text.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
-            if (dateMatch) {
-              extractedInfo.invoiceDate = dateMatch[0];
-              invoiceDateFound = true;
-            }
-          }
-
-          // Fallback for invoice date
-          if (!invoiceDateFound && text.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
-            extractedInfo.invoiceDate = text.match(
-              /\d{1,2}\/\d{1,2}\/\d{4}/
-            )[0];
-            invoiceDateFound = true;
-          }
-
-          // Extract due date
-          if (text.includes("due upon receipt")) {
-            extractedInfo.dueDate = "Due Upon Receipt";
-          } else if (text.includes("due date")) {
-            const dateMatch = text.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
-            if (dateMatch) {
-              extractedInfo.dueDate = dateMatch[0];
-            }
-          }
-        } else if (block.BlockType === "TABLE") {
-          // Extract items from table
-          if (block.Relationships && block.Relationships.length > 0) {
-            const tableRows = block.Relationships.find(
-              (r) => r.Type === "CHILD"
-            ).Ids;
-            tableRows.forEach((rowId, index) => {
-              const row = analyzeResult.Blocks.find((b) => b.Id === rowId);
-              if (row && row.BlockType === "CELL") {
-                if (index !== 0) {
-                  // Skip the header row
-                  const cellContents =
-                    row.Relationships && row.Relationships.length > 0
-                      ? row.Relationships.find(
-                          (r) => r.Type === "CHILD"
-                        ).Ids.map((id) => {
-                          const cell = analyzeResult.Blocks.find(
-                            (b) => b.Id === id
-                          );
-                          return cell ? cell.Text : "";
-                        })
-                      : [];
-                  if (cellContents.length >= 4) {
-                    extractedInfo.items.push({
-                      description: cellContents[0],
-                      fromDate: cellContents[1],
-                      toDate: cellContents[2],
-                      amount: cellContents[3],
-                    });
-                  }
-                }
-              }
-            });
-          }
-        }
-      });
+      let extractedInfo;
+      switch (vendorName) {
+        case "Cogent Communications":
+          extractedInfo = processCogentInvoice(analyzeResult.Blocks);
+          break;
+        case "OpenAI, LLC":
+          extractedInfo = processOpenAIInvoice(analyzeResult.Blocks);
+          break;
+        default:
+          // エラーメッセージを詳細にするための追加コード
+          console.error(
+            "Vendor not found in the document. Analyzed text:",
+            JSON.stringify(analyzeResult.Blocks, null, 2)
+          );
+          throw new Error("Unsupported vendor");
+      }
 
       setResult(extractedInfo);
+      console.log("Final Extracted Info:", extractedInfo); // extractedInfoの最終確認
+
       showSnackbar("Invoice processing completed successfully", "success");
     } catch (err) {
       console.error("Error processing invoice:", err);
@@ -236,6 +123,21 @@ const InvoiceProcess = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ベンダー名を抽出する関数
+  const detectVendor = (blocks) => {
+    for (const block of blocks) {
+      if (block.BlockType === "LINE") {
+        const text = (block.Text || "").toLowerCase();
+        console.log("Detected Text:", text); // ベンダー検出のためのログ
+
+        if (text.includes("cogent communications"))
+          return "Cogent Communications";
+        if (text.includes("openai")) return "OpenAI, LLC";
+      }
+    }
+    return "Unknown Vendor";
   };
 
   return (
