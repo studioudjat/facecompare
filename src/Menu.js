@@ -111,6 +111,17 @@ const Menu = () => {
             >
               ID
             </Button>
+            <Button
+              color="inherit"
+              component={Link}
+              to="/card"
+              style={{
+                textTransform: "none",
+                fontFamily: "'Roboto', sans-serif",
+              }}
+            >
+              Card
+            </Button>
           </div>
         </Toolbar>
       </Container>
