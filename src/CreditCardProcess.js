@@ -17,8 +17,11 @@ import {
 import MuiAlert from "@mui/material/Alert";
 import Menu from "./Menu"; // Importing the Menu component
 
-// Backend endpoint URL
-const API_ENDPOINT = "http://localhost:3000/process-credit-card";
+// Backend endpoint URL for local environment
+const API_ENDPOINT = "http://localhost:8080/process-credit-card";
+// Backend endpoint URL for Google Functions
+// const API_ENDPOINT =
+//  "https://us-west2-biz-process-x-ai.cloudfunctions.net/processImage/process-credit-card";
 
 // Function to process the credit card information extracted from the API
 const extractCardInfo = (response) => {
