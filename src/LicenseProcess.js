@@ -14,7 +14,7 @@ import MuiAlert from "@mui/material/Alert";
 import Menu from "./Menu"; // メニューコンポーネントのインポート
 
 // バックエンドのエンドポイント URL
-const API_ENDPOINT = "http://localhost:3000/process-id-card";
+const API_ENDPOINT = "http://localhost:8080/process-id-card";
 
 // API から抽出された運転免許証情報をフロントエンドで処理する関数
 const extractLicenseInfo = (response) => {
