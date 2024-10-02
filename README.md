@@ -1,44 +1,45 @@
-# FaceCompare アプリケーション
+# FaceCompare Application
 
-FaceCompare は、AWS Rekognition と React を使用して開発された顔認識アプリケーションです。このアプリケーションでは、画像のアップロード、顔の比較、ID からの情報抽出などの機能を提供します。
+FaceCompare is a face recognition application developed using AWS Rekognition and React. It offers features such as image uploading, face comparison, and extracting information from IDs.
 
-## 機能
+## Features
 
-- 画像のアップロードと管理
-- 顔の比較（1 対 1 および 1 対多）
-- ID 情報の抽出（OpenAI API を使用）
-- 画像ギャラリーの表示
-- プロフィール画像の設定
+- Upload and manage images
+- Face comparison (1-to-1 and 1-to-many)
+- Extract ID information (using OpenAI API)
+- Display image gallery
+- Set profile image
+- Invoice information extraction
 
-## 技術スタック
+## Technology Stack
 
 - React
 - AWS SDK (S3, Rekognition)
 - Material-UI
 - OpenAI API
 
-## セットアップ
+## Setup
 
-1. リポジトリをクローンします：
+1. Clone the repository:
 
    ```
    git clone https://github.com/studioudjat/facecompare.git
    cd facecompare
    ```
 
-2. 依存関係をインストールします：
+2. Install dependencies:
 
    ```
    npm install
    ```
 
-3. `.env.example` ファイルを `.env` にコピーし、必要な環境変数を設定します：
+3. Copy the `.env.example` file to `.env` and set the required environment variables:
 
    ```
    cp .env.example .env
    ```
 
-   テキストエディタで `.env` を開き、以下の変数に適切な値を設定してください：
+   Open the `.env` file in a text editor and set appropriate values for the following variables:
 
    - AWS_ACCESS_KEY_ID
    - AWS_SECRET_ACCESS_KEY
@@ -46,25 +47,35 @@ FaceCompare は、AWS Rekognition と React を使用して開発された顔認
    - S3_BUCKET_NAME
    - OPENAI_API_KEY
 
-4. アプリケーションを起動します：
+4. Start the application:
    ```
    npm start
    ```
 
-## 使用方法
+## Usage
 
-1. **画像のアップロード**: 「Add」ページで画像をアップロードします。
-2. **画像の一覧表示**: 「List」ページでアップロードされた画像を確認します。
-3. **顔の比較**: 「Match」ページでプロフィール画像と他の画像を比較します。
-4. **1 対 1 の顔比較**: 「Compare」ページで 2 つの画像の顔を比較します。
-5. **ID 情報の抽出**: 「Extract」ページで ID 画像から情報を抽出します。
+1. **Upload images**: Upload images on the "Add" page. This functionality is handled by the `AddImage.js` component.
+2. **View images**: View the uploaded images on the "List" page, managed by `ListImages.js`.
+3. **Compare faces**: On the "Match" page, compare a profile image with other images using `MatchFaces.js` for 1-to-1 face comparison.
+4. **1-to-1 Face Comparison**: Compare two images on the "Compare" page, implemented in `CompareFaces.js`.
+5. **Extract ID information**: On the "Extract" page, extract information from ID images using the OpenAI API, as implemented in `ExtractIdInfo.js`.
+6. **Process invoices**: Upload and process invoice PDFs on the "Process" page to extract invoice data using AWS Textract, handled by `InvoiceProcess.js`.
 
-## 注意事項
+## Key Component Overview
 
-- このアプリケーションは、AWS のサービスと OpenAI API を使用しています。使用には適切な認証情報と料金が発生する可能性があります。
-- 個人情報や機密情報の取り扱いには十分注意してください。
-- 本番環境にデプロイする際は、適切なセキュリティ対策を講じてください。
+- **`AddImage.js`**: Allows users to upload and preview images.
+- **`CompareFaces.js`**: Compares two faces using AWS Rekognition.
+- **`MatchFaces.js`**: Compares the profile image with other images.
+- **`ExtractIdInfo.js`**: Extracts information from ID images using the OpenAI API.
+- **`InvoiceProcess.js`**: Processes invoices, extracting details like amounts and dates using AWS Textract.
+- **`s3Service.js`**: Provides backend services for uploading and deleting files in AWS S3.
 
-## ライセンス
+## Notes
 
-このプロジェクトは [MIT ライセンス](LICENSE) のもとで公開されています。
+- This application uses AWS services and the OpenAI API. Charges may apply for usage.
+- Be cautious when handling personal or sensitive information.
+- Implement proper security measures when deploying in production.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
