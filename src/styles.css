@@ -1,10 +1,19 @@
+/* グローバルスタイル（index.cssより） */
 body {
-  font-family: "Roboto", sans-serif;
-  background-color: #f4f6f9;
   margin: 0;
-  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+/* ナビゲーションバーのスタイル（styles.cssより） */
 .navbar {
   background-color: #1976d2;
   color: #ffffff;
@@ -26,7 +35,7 @@ body {
   margin: 0 auto;
 }
 
-/* 画像カードのスタイル */
+/* カードのスタイル */
 .card {
   position: relative;
   overflow: hidden;
@@ -60,6 +69,7 @@ body {
   color: #fff;
 }
 
+/* 見出しのスタイル */
 .heading {
   font-weight: bold;
   color: #1976d2;

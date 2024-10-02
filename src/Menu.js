@@ -100,28 +100,6 @@ const Menu = () => {
             >
               Process
             </Button>
-            <Button
-              color="inherit"
-              component={Link}
-              to="/id"
-              style={{
-                textTransform: "none",
-                fontFamily: "'Roboto', sans-serif",
-              }}
-            >
-              ID
-            </Button>
-            <Button
-              color="inherit"
-              component={Link}
-              to="/card"
-              style={{
-                textTransform: "none",
-                fontFamily: "'Roboto', sans-serif",
-              }}
-            >
-              Card
-            </Button>
           </div>
         </Toolbar>
       </Container>

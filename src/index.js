@@ -7,10 +7,8 @@ import MatchFaces from "./MatchFaces";
 import ListImages from "./ListImages";
 import CompareFaces from "./CompareFaces";
 import ExtractIdInfo from "./ExtractIdInfo";
-import LicenseProcess from "./LicenseProcess";
-import "./styles.css"; // 外部CSSファイルのインポート
 import InvoiceProcess from "./InvoiceProcess";
-import CreditCardProcess from "./CreditCardProcess";
+import "./styles.css"; // 外部CSSファイルのインポート
 
 const root = ReactDOM.createRoot(document.getElementById("root")); // React 18 の新しい root API を使用
 
@@ -31,10 +29,6 @@ root.render(
       {/* "/extract" パスに対するコンポーネント */}
       <Route path="/process" element={<InvoiceProcess />} />{" "}
       {/* "/process" パスに対するコンポーネント */}
-      <Route path="/id" element={<LicenseProcess />} />{" "}
-      {/* "/id" パスに対するコンポーネント */}
-      <Route path="/card" element={<CreditCardProcess />} />{" "}
-      {/* "/id" パスに対するコンポーネント */}
     </Routes>
   </Router>
 );
